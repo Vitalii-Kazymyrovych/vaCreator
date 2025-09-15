@@ -262,7 +262,8 @@ public class VaCreatorApplication implements CommandLineRunner {
                     "\"color\":\"#A347FF\"," +
                     "\"name\":\"Rule 1\"," +
                     "\"excluded\":[]" +
-                    "}]," +
+                    "}]" +
+                    "}," +
                     "\"events_holder\":{" +
                     "\"notify_enabled\":0," +
                     "\"events\":[]" +
