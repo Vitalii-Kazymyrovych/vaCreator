@@ -11,6 +11,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @SpringBootApplication
@@ -23,20 +24,29 @@ public class VaCreatorApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        if (args == null || args.length < 3) {
+        if (args == null || args.length < 4) {
             printUsage();
             return;
         }
 
         String token = args[0];
         String command = args[1].toUpperCase();
+        String analyticsType = args[args.length - 1].toUpperCase();
+
+        if (!"OD".equals(analyticsType) && !"SVA".equals(analyticsType)) {
+            System.err.println("Unrecognized analytics type: " + analyticsType);
+            printUsage();
+            return;
+        }
+
+        String[] baseArgs = Arrays.copyOf(args, args.length - 1);
 
         List<Integer> streamIds;
         try {
             if ("FROM".equals(command)) {
-                streamIds = parseRangeArgs(args);
+                streamIds = parseRangeArgs(baseArgs);
             } else if ("FOR".equals(command)) {
-                streamIds = parseForArgs(args);
+                streamIds = parseForArgs(baseArgs);
             } else {
                 System.err.println("Unrecognized command: " + args[1]);
                 printUsage();
@@ -56,7 +66,7 @@ public class VaCreatorApplication implements CommandLineRunner {
         VaCreatorApplication app = new VaCreatorApplication();
         for (Integer id : streamIds) {
             try {
-                app.createAnalytics(token, id);
+                app.createAnalytics(token, id, analyticsType);
             } catch (IOException | InterruptedException e) {
                 System.err.println("Failed to create analytics for stream " + id + ": " + e.getMessage());
             }
@@ -146,60 +156,130 @@ public class VaCreatorApplication implements CommandLineRunner {
     }
 
     /**
-     * Sends a POST request to create a Smart VA analytics configuration for the given
-     * stream identifier.
+     * Sends a POST request to create an analytics configuration of the specified type
+     * for the given stream identifier.
      *
-     * @param token    the bearer token used for authentication
-     * @param streamId the stream identifier for which the analytics should be created
+     * @param token         the bearer token used for authentication
+     * @param streamId      the stream identifier for which the analytics should be created
+     * @param analyticsType the type of analytics to create ("SVA" or "OD")
      * @throws IOException          if an I/O error occurs when sending or receiving
      *                              the request
      * @throws InterruptedException if the operation is interrupted
      */
-    public void createAnalytics(String token, int streamId) throws IOException, InterruptedException {
-        String url = "http://localhost:2001/api/v2/smart_va/analytics";
-        // Construct the JSON payload. Fields that do not depend on streamId are hardcoded.
-        String json = "{" +
-                "\"type\":\"smart_va\"," +
-                "\"stream_id\":" + streamId + "," +
-                "\"allowed_server_ids\":null," +
-                "\"module\":{" +
-                "\"advanced_settings\":{" +
-                "\"tracker\":\"normal\"," +
-                "\"sensitivity\":5," +
-                "\"model\":\"performance\"," +
-                "\"tracker_buffer_time\":10," +
-                "\"min_width\":25," +
-                "\"min_height\":25" +
-                "}," +
-                "\"hardware_settings\":{" +
-                "\"acceleration\":\"\"," +
-                "\"decoding\":\"nvidia\"," +
-                "\"hardware\":\"gpu\"," +
-                "\"frame_rate_settings\":{" +
-                "\"mode\":\"fps\"," +
-                "\"fps\":\"5\"" +
-                "}," +
-                "\"motion\":false" +
-                "}," +
-                "\"mode\":\"alert\"," +
-                "\"rules\":[]" +
-                "}," +
-                "\"events_holder\":{" +
-                "\"notify_enabled\":false," +
-                "\"events\":[]" +
-                "}," +
-                "\"access_restrictions\":{" +
-                "\"role_permissions\":{}," +
-                "\"user_permissions\":{}," +
-                "\"default_permissions\":{" +
-                "\"StartAnalytics\":true," +
-                "\"StopAnalytics\":true," +
-                "\"EditAnalytics\":true," +
-                "\"ViewAnalyticsLive\":true," +
-                "\"ViewAnalyticsEvents\":true" +
-                "}" +
-                "}" +
-                "}";
+    public void createAnalytics(String token, int streamId, String analyticsType) throws IOException, InterruptedException {
+        String url;
+        String json;
+
+        if ("SVA".equalsIgnoreCase(analyticsType)) {
+            url = "http://localhost:2001/api/v2/smart_va/analytics";
+            json = "{" +
+                    "\"type\":\"smart_va\"," +
+                    "\"stream_id\":" + streamId + "," +
+                    "\"allowed_server_ids\":null," +
+                    "\"module\":{" +
+                    "\"advanced_settings\":{" +
+                    "\"tracker\":\"normal\"," +
+                    "\"sensitivity\":5," +
+                    "\"model\":\"performance\"," +
+                    "\"tracker_buffer_time\":10," +
+                    "\"min_width\":25," +
+                    "\"min_height\":25" +
+                    "}," +
+                    "\"hardware_settings\":{" +
+                    "\"acceleration\":\"\"," +
+                    "\"decoding\":\"nvidia\"," +
+                    "\"hardware\":\"gpu\"," +
+                    "\"frame_rate_settings\":{" +
+                    "\"mode\":\"fps\"," +
+                    "\"fps\":\"5\"" +
+                    "}," +
+                    "\"motion\":false" +
+                    "}," +
+                    "\"mode\":\"alert\"," +
+                    "\"rules\":[]" +
+                    "}," +
+                    "\"events_holder\":{" +
+                    "\"notify_enabled\":false," +
+                    "\"events\":[]" +
+                    "}," +
+                    "\"access_restrictions\":{" +
+                    "\"role_permissions\":{}," +
+                    "\"user_permissions\":{}," +
+                    "\"default_permissions\":{" +
+                    "\"StartAnalytics\":true," +
+                    "\"StopAnalytics\":true," +
+                    "\"EditAnalytics\":true," +
+                    "\"ViewAnalyticsLive\":true," +
+                    "\"ViewAnalyticsEvents\":true" +
+                    "}" +
+                    "}" +
+                    "}";
+        } else { // OD
+            url = "http://localhost:2001/api/v2/object_in_zone/analytics";
+            json = "{" +
+                    "\"type\":\"object_in_zone\"," +
+                    "\"stream_id\":" + streamId + "," +
+                    "\"allowed_server_ids\":null," +
+                    "\"module\":{" +
+                    "\"advanced_settings\":{" +
+                    "\"tracker\":\"normal\"," +
+                    "\"alarm_filtration\":true," +
+                    "\"sensitivity\":5," +
+                    "\"model\":\"quality\"," +
+                    "\"tracker_buffer_time\":20," +
+                    "\"min_width\":25," +
+                    "\"min_height\":25" +
+                    "}," +
+                    "\"hardware_settings\":{" +
+                    "\"acceleration\":\"\"," +
+                    "\"decoding\":\"nvidia\"," +
+                    "\"hardware\":\"gpu\"," +
+                    "\"frame_rate_settings\":{" +
+                    "\"mode\":\"fps\"," +
+                    "\"fps\":\"10\"" +
+                    "}," +
+                    "\"motion\":false" +
+                    "}," +
+                    "\"excluded_crossing\":8," +
+                    "\"mode\":\"alert\"," +
+                    "\"zone_crossing\":8," +
+                    "\"polygons\":[{" +
+                    "\"points\":[" +
+                    "{\"x\":\"0.0078\",\"y\":\"0.0139\"}," +
+                    "{\"x\":\"0.9922\",\"y\":\"0.0139\"}," +
+                    "{\"x\":\"0.9922\",\"y\":\"0.9861\"}," +
+                    "{\"x\":\"0.0078\",\"y\":\"0.9861\"}" +
+                    "]," +
+                    "\"types\":[\"0\"]," +
+                    "\"time_periods\":[{" +
+                    "\"start_time\":\"00:00:00\"," +
+                    "\"end_time\":\"23:59:59\"," +
+                    "\"trigger\":6," +
+                    "\"dwell_time\":\"5\"," +
+                    "\"object_counter_limit\":\"1\"," +
+                    "\"selected_days\":[0,1,2,3,4,5,6]" +
+                    "}]," +
+                    "\"color\":\"#A347FF\"," +
+                    "\"name\":\"Rule 1\"," +
+                    "\"excluded\":[]" +
+                    "}]," +
+                    "\"events_holder\":{" +
+                    "\"notify_enabled\":0," +
+                    "\"events\":[]" +
+                    "}," +
+                    "\"access_restrictions\":{" +
+                    "\"role_permissions\":{}," +
+                    "\"user_permissions\":{}," +
+                    "\"default_permissions\":{" +
+                    "\"StartAnalytics\":true," +
+                    "\"StopAnalytics\":true," +
+                    "\"EditAnalytics\":true," +
+                    "\"ViewAnalyticsLive\":true," +
+                    "\"ViewAnalyticsEvents\":true" +
+                    "}" +
+                    "}" +
+                    "}";
+        }
         // Build the HTTP request
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -223,15 +303,17 @@ public class VaCreatorApplication implements CommandLineRunner {
      * Prints usage instructions to standard output.
      */
     private static void printUsage() {
-        System.out.println("Usage: java -jar create.jar <token> FROM <start> TO <end>");
-        System.out.println("   or: java -jar create.jar <token> FOR [id1,id2,id3,...]");
+        System.out.println("Usage: java -jar vaCreator.jar <token> FROM <start> TO <end> <type>");
+        System.out.println("   or: java -jar vaCreator.jar <token> FOR [id1,id2,id3,...] <type>");
         System.out.println();
         System.out.println("Commands:");
         System.out.println("  FROM <start> TO <end>   Creates analytics for all stream IDs from <start> to <end>, inclusive.");
-        System.out.println("  FOR [list]              Creates analytics for each stream ID in the comma‑separated list. Spaces are allowed.");
+        System.out.println("  FOR [list]              Creates analytics for each stream ID in the comma-separated list. Spaces are allowed.");
+        System.out.println();
+        System.out.println("<type> must be 'od' for Object Detection or 'sva' for Smart VA.");
         System.out.println();
         System.out.println("Examples:");
-        System.out.println("  java -jar create.jar abc123 FROM 10 TO 15");
-        System.out.println("  java -jar create.jar abc123 FOR [2, 5, 8]");
+        System.out.println("  java -jar vaCreator.jar abc123 FROM 10 TO 15 od");
+        System.out.println("  java -jar vaCreator.jar abc123 FOR [2, 5, 8] sva");
     }
 }
