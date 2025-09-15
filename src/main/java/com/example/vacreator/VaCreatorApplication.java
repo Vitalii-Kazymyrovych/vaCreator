@@ -33,7 +33,7 @@ public class VaCreatorApplication implements CommandLineRunner {
         String command = args[1].toUpperCase();
         String analyticsType = args[args.length - 1].toUpperCase();
 
-        if (!"OD".equals(analyticsType) && !"SVA".equals(analyticsType)) {
+        if (!"OD".equals(analyticsType) && !"SVA".equals(analyticsType) && !"HHD".equals(analyticsType)) {
             System.err.println("Unrecognized analytics type: " + analyticsType);
             printUsage();
             return;
@@ -214,6 +214,70 @@ public class VaCreatorApplication implements CommandLineRunner {
                     "}" +
                     "}" +
                     "}";
+        } else if ("HHD".equalsIgnoreCase(analyticsType)) {
+            url = "http://localhost:2001/api/v2/hardhat/analytics";
+            json = String.format("""
+                    {
+                      "type": "hardhat",
+                      "stream_id": %d,
+                      "allowed_server_ids": null,
+                      "module": {
+                        "advanced_settings": {
+                          "tracker_sensitivity": 5,
+                          "sensitivity": 5,
+                          "model": "quality",
+                          "tracker_buffer_time": 20,
+                          "min_width": 25,
+                          "min_height": 25
+                        },
+                        "hardware_settings": {
+                          "acceleration": "",
+                          "decoding": "nvidia",
+                          "hardware": "gpu",
+                          "frame_rate_settings": {
+                            "mode": "fps",
+                            "fps": "5"
+                          },
+                          "motion": false
+                        },
+                        "alert_delay": 5,
+                        "polygons": [
+                          {
+                            "points": [
+                              { "x": "0.0078", "y": "0.3215" },
+                              { "x": "0.7906", "y": "0.3076" },
+                              { "x": "0.8766", "y": "0.9861" },
+                              { "x": "0.0078", "y": "0.9896" }
+                            ],
+                            "name": "Zone 1",
+                            "color": "#CCFF4D",
+                            "time_periods": [
+                              {
+                                "start_time": "00:00:00",
+                                "end_time": "23:59:59",
+                                "selected_days": [0, 1, 2, 3, 4, 5, 6]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "events_holder": {
+                        "notify_enabled": 0,
+                        "events": []
+                      },
+                      "access_restrictions": {
+                        "role_permissions": {},
+                        "user_permissions": {},
+                        "default_permissions": {
+                          "StartAnalytics": true,
+                          "StopAnalytics": true,
+                          "EditAnalytics": true,
+                          "ViewAnalyticsLive": true,
+                          "ViewAnalyticsEvents": true
+                        }
+                      }
+                    }
+                    """, streamId);
         } else { // OD
             url = "http://localhost:2001/api/v2/object_in_zone/analytics";
             json = "{" +
@@ -311,10 +375,11 @@ public class VaCreatorApplication implements CommandLineRunner {
         System.out.println("  FROM <start> TO <end>   Creates analytics for all stream IDs from <start> to <end>, inclusive.");
         System.out.println("  FOR [list]              Creates analytics for each stream ID in the comma-separated list. Spaces are allowed.");
         System.out.println();
-        System.out.println("<type> must be 'od' for Object Detection or 'sva' for Smart VA.");
+        System.out.println("<type> must be 'od' for Object Detection, 'sva' for Smart VA, or 'hhd' for Hard Hat Detection.");
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  java -jar vaCreator.jar abc123 FROM 10 TO 15 od");
         System.out.println("  java -jar vaCreator.jar abc123 FOR [2, 5, 8] sva");
+        System.out.println("  java -jar vaCreator.jar abc123 FOR [2, 5, 8] hhd");
     }
 }
