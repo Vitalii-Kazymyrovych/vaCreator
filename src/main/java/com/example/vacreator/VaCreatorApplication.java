@@ -225,8 +225,8 @@ public class VaCreatorApplication implements CommandLineRunner {
                     "\"tracker\":\"normal\"," +
                     "\"alarm_filtration\":true," +
                     "\"sensitivity\":5," +
-                    "\"model\":\"quality\"," +
-                    "\"tracker_buffer_time\":20," +
+                    "\"model\":\"performance\"," +
+                    "\"tracker_buffer_time\":10," +
                     "\"min_width\":25," +
                     "\"min_height\":25" +
                     "}," +
