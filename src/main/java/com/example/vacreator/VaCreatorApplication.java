@@ -33,7 +33,7 @@ public class VaCreatorApplication implements CommandLineRunner {
         String command = args[1].toUpperCase();
         String analyticsType = args[args.length - 1].toUpperCase();
 
-        if (!"OD".equals(analyticsType) && !"SVA".equals(analyticsType) && !"HHD".equals(analyticsType)) {
+        if (!"OD".equals(analyticsType) && !"SVA".equals(analyticsType) && !"HHD".equals(analyticsType) && !"SFD".equals(analyticsType)) {
             System.err.println("Unrecognized analytics type: " + analyticsType);
             printUsage();
             return;
@@ -161,7 +161,7 @@ public class VaCreatorApplication implements CommandLineRunner {
      *
      * @param token         the bearer token used for authentication
      * @param streamId      the stream identifier for which the analytics should be created
-     * @param analyticsType the type of analytics to create ("SVA" or "OD")
+     * @param analyticsType the type of analytics to create ("SVA", "OD", "HHD", or "SFD")
      * @throws IOException          if an I/O error occurs when sending or receiving
      *                              the request
      * @throws InterruptedException if the operation is interrupted
@@ -251,6 +251,71 @@ public class VaCreatorApplication implements CommandLineRunner {
                             ],
                             "name": "Zone 1",
                             "color": "#CCFF4D",
+                            "time_periods": [
+                              {
+                                "start_time": "00:00:00",
+                                "end_time": "23:59:59",
+                                "selected_days": [0, 1, 2, 3, 4, 5, 6]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "events_holder": {
+                        "notify_enabled": 0,
+                        "events": []
+                      },
+                      "access_restrictions": {
+                        "role_permissions": {},
+                        "user_permissions": {},
+                        "default_permissions": {
+                          "StartAnalytics": true,
+                          "StopAnalytics": true,
+                          "EditAnalytics": true,
+                          "ViewAnalyticsLive": true,
+                          "ViewAnalyticsEvents": true
+                        }
+                      }
+                    }
+                    """, streamId);
+        } else if ("SFD".equalsIgnoreCase(analyticsType)) {
+            url = "http://localhost:2001/api/v2/smoke_fire/analytics";
+            json = String.format("""
+                    {
+                      "type": "smoke_fire",
+                      "stream_id": %d,
+                      "allowed_server_ids": null,
+                      "module": {
+                        "advanced_settings": {
+                          "tracker_sensitivity": 5,
+                          "sensitivity": 5,
+                          "model": "quality",
+                          "tracker_buffer_time": 20,
+                          "min_width": 25,
+                          "min_height": 25
+                        },
+                        "hardware_settings": {
+                          "acceleration": "",
+                          "decoding": "nvidia",
+                          "hardware": "gpu",
+                          "frame_rate_settings": {
+                            "mode": "fps",
+                            "fps": "5"
+                          },
+                          "motion": false
+                        },
+                        "detect_delay": 1,
+                        "alert_delay": 300,
+                        "polygons": [
+                          {
+                            "points": [
+                              { "x": "0.0078", "y": "0.0104" },
+                              { "x": "0.9922", "y": "0.0104" },
+                              { "x": "0.9922", "y": "0.9896" },
+                              { "x": "0.0078", "y": "0.9896" }
+                            ],
+                            "name": "Zone 1",
+                            "color": "#CF4D",
                             "time_periods": [
                               {
                                 "start_time": "00:00:00",
@@ -375,11 +440,12 @@ public class VaCreatorApplication implements CommandLineRunner {
         System.out.println("  FROM <start> TO <end>   Creates analytics for all stream IDs from <start> to <end>, inclusive.");
         System.out.println("  FOR [list]              Creates analytics for each stream ID in the comma-separated list. Spaces are allowed.");
         System.out.println();
-        System.out.println("<type> must be 'od' for Object Detection, 'sva' for Smart VA, or 'hhd' for Hard Hat Detection.");
+        System.out.println("<type> must be 'od' for Object Detection, 'sva' for Smart VA, 'hhd' for Hard Hat Detection, or 'sfd' for Smoke/Fire Detection.");
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  java -jar vaCreator.jar abc123 FROM 10 TO 15 od");
         System.out.println("  java -jar vaCreator.jar abc123 FOR [2, 5, 8] sva");
         System.out.println("  java -jar vaCreator.jar abc123 FOR [2, 5, 8] hhd");
+        System.out.println("  java -jar vaCreator.jar abc123 FROM 20 TO 25 sfd");
     }
 }
